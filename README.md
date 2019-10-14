@@ -5,7 +5,7 @@ The purpose of this software is to treat and analyze data of a Membrane Inlet Ma
 ## Getting Started
 To run the software (MIMS_Analysis.jar file), you need Java version 1.8.0_201 (or higher). See (https://www.java.com/fr/download/).
 
-If your system doesn't support java 1.8.0, you can get the code in the source code folder and compile it with your own java version (and create and executable with eclipse for example).
+If your system doesn't support java 1.8.0, you can get the code in the software folder and compile it with your own java version (and create and executable with eclipse for example).
 
 To launch the software you just have to double click on the MIMS_Analysis.jar element (or compile the code).
 
