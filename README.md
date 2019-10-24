@@ -16,7 +16,7 @@ First, you need a factor file in csv. You can find an example in the repository.
 
 Each row are values associated with various M/Z values (first column of factor file).
 
-Isotope is the name of the associated Molecule, as it will be displayed in the software (you can edit them).
+Isotope is the name of the associated molecule, as it will be displayed in the software (you can edit them).
 
 Concentration, signal, baseline and consumption are supposed to be changed each calibration.
 
@@ -32,11 +32,11 @@ You can change the title of each row, as it better suits you.
 
 ### Common Bugs
 The pH value and Denoised value are associated with the M/Z=2 row. You must not erase this row, even if you don't measure M/Z=2.  
-Even if you don't want the software to display Ci, you need to enter a pH value by default (just put 1).  
+Even if you don't want the software to display Ci, you need to enter a pH value by default (for example, choose a neutral pH: 7).  
 Then you will be able to choose to dipslay or not Ci in the "display" menu of the software.
 
 Denoised is set to be the M/Z values used for denoised calculus. If you don't want denoised calculus you can leave this cell empty. 
-If you put a certain M/Z value for denoised calculus but the MIMS don't measure this M/Z, denoised calculus will not be enabled.
+If you put a certain M/Z value for denoised calculus but the MIMS doesn't measure this M/Z, denoised calculus will not be enabled.
 
 Every M/Z value measured by the MIMS should have a corresponding row in the factor file (except M/Z=12 and M/Z=27). 
 
@@ -63,7 +63,7 @@ In another case, an error message will be displayed.
 
 ### Drop Down Menu 
 A drop down menu associated with the V(gas2)=F(c(gas1)) button is displayed if you have denoised calculus.  
-In this case you can choose a first molecule (gas1) and a second one (gas2) with drop down menus and when pressing the button, it will display V(gas2)=F(c(gas1)).
+In this case you can choose a first molecule (gas1) and a second one (gas2) with drop down menus and when pressing the button, it will display the densoised gas exchange rate of (gas2) as a function of the gas concentration of (gas1).
 
 
 
@@ -79,11 +79,11 @@ The Min and Max columns are updated automatically.
 
 
 ### Edit Menu
-In the edit menu you can choose to play or pause the process. The software will still be working but new data will not be added to the dataset.   
-Once you pressed play, every pending data are added at the same time in the dataset.  
+In the edit menu you can choose to play or pause the real time calculations. The software will still be working but new data will not be added to the dataset.   
+Once you press play, every pending data are added at the same time in the dataset.  
 
 The normalization factor button is set to modify the value of the normalization factor (set to one at the beginning).  
-Every data implicating rates (like gas exchange rates or cumulated gas exchanges) are divided by this factor.  
+Every data that uses gas exchagne rates (like gas exchange rates or cumulated gas exchanges) are divided by this factor.  
 Once you changed the normalization factor values, every chart panel will be closed and the dataset updated. You will have to reopen each wanted chart panel.
 
 
