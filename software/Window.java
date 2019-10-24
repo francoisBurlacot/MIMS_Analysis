@@ -56,13 +56,13 @@ public class Window extends JFrame {
 	/*
 	 * gasConcentrationCorrection is used to obtain gasConcentrationData. Each row
 	 * contains the factor C_max/((A_max-A_0)) of the corresponding molecule, for
-	 * the formula C(t)=A(t)×C_max/((A_max-A_0))
+	 * the formula C(t)=A(t)Ã—C_max/((A_max-A_0))
 	 */
 	private List<Double> gasConcentrationCorrection;
 
 	/*
 	 * gasConcentrationConcumption contain the factor k, used to obtain
-	 * gasExchangeRatesData (v(t)=(delta(C(t)))/delta(t)-k×C(t))
+	 * gasExchangeRatesData (v(t)=(delta(C(t)))/delta(t)-kÃ—C(t))
 	 */
 	private List<Double> gasConcentrationConsumption;
 
@@ -290,17 +290,17 @@ public class Window extends JFrame {
 		 * (the names are final and don't depend on the data)
 		 */
 		o2ExchangeRatesColumnName[0] = "Time (min)";
-		o2ExchangeRatesColumnName[1] = "Uo (µM / min)";
-		o2ExchangeRatesColumnName[2] = "Eo (µM / min)";
-		o2ExchangeRatesColumnName[3] = "Net (µM / min)";
+		o2ExchangeRatesColumnName[1] = "Uo (ÂµM / min)";
+		o2ExchangeRatesColumnName[2] = "Eo (ÂµM / min)";
+		o2ExchangeRatesColumnName[3] = "Net (ÂµM / min)";
 
 		o2ExchangeColumnName[0] = "Time (min)";
-		o2ExchangeColumnName[1] = "Uo (µM)";
-		o2ExchangeColumnName[2] = "Eo (µM)";
-		o2ExchangeColumnName[3] = "Net (µM)";
+		o2ExchangeColumnName[1] = "Uo (ÂµM)";
+		o2ExchangeColumnName[2] = "Eo (ÂµM)";
+		o2ExchangeColumnName[3] = "Net (ÂµM)";
 
 		hydrogenaseActivityColumnName[0] = "Time (min)";
-		hydrogenaseActivityColumnName[1] = "Hydrogenase Activity  (µM / min)";
+		hydrogenaseActivityColumnName[1] = "Hydrogenase Activity  (ÂµM / min)";
 
 		/*
 		 * get the last paths of loading factor, loading CSV and saving XLSX (if one
@@ -1318,10 +1318,10 @@ public class Window extends JFrame {
 								/*
 								 * gasConcentrationCorrection is used to obtain gasConcentrationData, each row
 								 * contains the factor C_max/((A_max-A_0)) of the corresponding molecule, for
-								 * the formula C(t)=(A(t)-A_0)×C_max/((A_max-A_0))
+								 * the formula C(t)=(A(t)-A_0)Ã—C_max/((A_max-A_0))
 								 * 
 								 * gasConcentrationConcumption contain the factor k, used to obtain
-								 * gasExchangeRatesData (v(t)=(delta(C(t)))/delta(t)-k×C(t))
+								 * gasExchangeRatesData (v(t)=(delta(C(t)))/delta(t)-kÃ—C(t))
 								 */
 
 								/*
@@ -1445,15 +1445,15 @@ public class Window extends JFrame {
 
 						int k = 1;
 						for (int i = 1; i < listElement.size(); i++) {
-							gasConcentrationColumnName[i] = listElement.get(i) + "  (µM)";
-							gasExchangeRatesColumnName[i] = listElement.get(i) + "  (µM / min)";
+							gasConcentrationColumnName[i] = listElement.get(i) + "  (ÂµM)";
+							gasExchangeRatesColumnName[i] = listElement.get(i) + "  (ÂµM / min)";
 							gasConcentrationMoleculeList.addItem(listElement.get(i));
 
 							if (presenceMass) {
 								/* not display the mass, for denoised curves */
 								if (i != indexMass) {
-									denoisedGasExchangeRatesColumnName[k] = listElement.get(i) + "  (µM / min)";
-									denoisedCumulatedGasExchangeColumnName[k] = listElement.get(i) + "  (µM)";
+									denoisedGasExchangeRatesColumnName[k] = listElement.get(i) + "  (ÂµM / min)";
+									denoisedCumulatedGasExchangeColumnName[k] = listElement.get(i) + "  (ÂµM)";
 									denoisedGasExchangeRatesMoleculeList.addItem(listElement.get(i));
 									k++;
 								}
@@ -1560,7 +1560,7 @@ public class Window extends JFrame {
 											* gasConcentrationCorrection.get(i - j - 1);
 									/*
 									 * gasConcentrationCorrection.get(i - j - 1) is here because
-									 * C(t)=(A(t)-A(0))×C_max/((A_max-A_0))
+									 * C(t)=(A(t)-A(0))Ã—C_max/((A_max-A_0))
 									 */
 
 									/* decrease j (so increase i-j) */
@@ -1583,7 +1583,7 @@ public class Window extends JFrame {
 									if (presence30 != 0) {
 										/*
 										 * if we have 12 and 30, edit the value of NO (we do that because we need the
-										 * value of element N2O) : A_(NO) (30)=(A_(NO)(12)-A(30)/0.311)
+										 * value of element N2O) : A_(NO) (30)=(A_(30)-A(N2O)(44)/0.311)
 										 */
 										gasConcentrationLine[presence30] = ((valueNO
 												- gasConcentrationLine[i - j] / Double.parseDouble(factor.get(30)[5]))
@@ -1776,7 +1776,7 @@ public class Window extends JFrame {
 															* gasConcentrationCorrection.get(i - j - 1);
 											/*
 											 * gasConcentrationCorrection.get(i - j - 1) is here because
-											 * C(t)=(A(t)-A(0))×C_max/((A_max-A_0))
+											 * C(t)=(A(t)-A(0))Ã—C_max/((A_max-A_0))
 											 */
 
 											/* decrease j (so increase i-j) */
@@ -3199,10 +3199,10 @@ public class Window extends JFrame {
 					/*know if we want oxygen exchange rates or not, in this case, special characteristic*/
 					if (gasExchangeRatesMolecule == "Oxygen Exchange Rates") {
 						gasExchangeRateFunctionConcentrationColumnName = new String[4];
-						gasExchangeRateFunctionConcentrationColumnName[0] = gasConcentrationMolecule + " (µM)";
-						gasExchangeRateFunctionConcentrationColumnName[1] = "Uo (µM / min)";
-						gasExchangeRateFunctionConcentrationColumnName[2] = "Eo (µM / min)";
-						gasExchangeRateFunctionConcentrationColumnName[3] = "Net (µM / min)";
+						gasExchangeRateFunctionConcentrationColumnName[0] = gasConcentrationMolecule + " (ÂµM)";
+						gasExchangeRateFunctionConcentrationColumnName[1] = "Uo (ÂµM / min)";
+						gasExchangeRateFunctionConcentrationColumnName[2] = "Eo (ÂµM / min)";
+						gasExchangeRateFunctionConcentrationColumnName[3] = "Net (ÂµM / min)";
 
 						/* get our data if we want o2 in our curve */
 						for (int i = 0; i < nbRow - 1; i++) {
@@ -3238,8 +3238,8 @@ public class Window extends JFrame {
 					/* else create our dataset with the same idea, but only two column (one curve) */
 					else {
 						gasExchangeRateFunctionConcentrationColumnName = new String[2];
-						gasExchangeRateFunctionConcentrationColumnName[0] = gasConcentrationMolecule + " (µM)";
-						gasExchangeRateFunctionConcentrationColumnName[1] = gasExchangeRatesMolecule + " (µM / min)";
+						gasExchangeRateFunctionConcentrationColumnName[0] = gasConcentrationMolecule + " (ÂµM)";
+						gasExchangeRateFunctionConcentrationColumnName[1] = gasExchangeRatesMolecule + " (ÂµM / min)";
 						/* get our data */
 						for (int i = 0; i < nbRow - 1; i++) {
 							line = new Double[2];
