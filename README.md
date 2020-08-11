@@ -33,7 +33,7 @@ You can change the title of each row, as it better suits you.
 ### Common Bugs
 The pH value and Denoised value are associated with the M/Z=2 row. You must not erase this row, even if you don't measure M/Z=2.  
 Even if you don't want the software to display Ci, you need to enter a pH value by default (for example, choose a neutral pH: 7).  
-Then you will be able to choose to dipslay or not Ci in the "display" menu of the software.
+Then you will be able to choose to display or not Ci in the "display" menu of the software.
 
 Denoised is set to be the M/Z values used for denoised calculus. If you don't want denoised calculus you can leave this cell empty. 
 If you put a certain M/Z value for denoised calculus but the MIMS doesn't measure this M/Z, denoised calculus will not be enabled.
@@ -47,7 +47,7 @@ Once you have loaded the factor file thanks to the file menu, you can load your 
 ## Data File
 You can find an example of DataFile in the repository.
 
-It's really important that each row ends with a ";" and that the second row, named "$Flags$" is empty. 
+It's really important that the second row, named "$Flags$" is empty. 
 If it's not the case change the parameters of your MIMS, or change the code (in the getData(path) function) to suit your own Data file.
 
 Once you have loaded your Data File, you will be able to use the software as you want.
@@ -72,14 +72,14 @@ On each curves panel, you have a "save data" button in the "File" menu at the le
 It will save the data of the corresponding panel into an XLSX file (or XLS file if you choose an existing XLS file).  
 To do so, be sure that the save file (if it exist) isn't open or in state "read only".  
 
-In each curve panel, you can enter in fields a "Value for abscissa", a "Lower Bound for Average" and an "Upper Bound for Average".   
+In each curve panel, you can enter in the fields a "Value for abscissa", a "Lower Bound for Average" and an "Upper Bound for Average".   
 Once you have entered the desired values, you can press the calculate button, and the Table bellows will be updated with the corresponding values.  
 The Min and Max columns are updated automatically.   
 
 
 
 ### Edit Menu
-In the edit menu you can choose to play or pause the real time calculations. The software will still be working but new data will not be added to the dataset.   
+From the edit menu you can choose to play or pause the real time calculations. The software will still be working but new data will not be added to the dataset.   
 Once you press play, every pending data are added at the same time in the dataset.  
 
 The normalization factor button is set to modify the value of the normalization factor (set to one at the beginning).  
