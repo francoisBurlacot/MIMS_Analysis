@@ -83,7 +83,7 @@ In the edit menu you can choose to play or pause the real time calculations. The
 Once you press play, every pending data are added at the same time in the dataset.  
 
 The normalization factor button is set to modify the value of the normalization factor (set to one at the beginning).  
-Every data that uses gas exchagne rates (like gas exchange rates or cumulated gas exchanges) are divided by this factor.  
+Every data that uses gas exchange rates (like gas exchange rates or cumulated gas exchanges) are divided by this factor.  
 Once you changed the normalization factor values, every chart panel will be closed and the dataset updated. You will have to reopen each wanted chart panel.
 
 
