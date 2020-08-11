@@ -1342,12 +1342,12 @@ public class Window extends JFrame {
 									listElement.add("Ci");
 									j--;
 									/*
-									 * Ci=Cco2*(1+exp(-6.4+pH)*(1+exp(-10.3+pH))), so get
-									 * 1+exp(-6.4+pH)*(1+exp(-10.3+pH))
+									 * Ci=Cco2*(1+exp((-6.4+pH)*ln(10))*(1+exp((-10.3+pH)*ln(10)))), so get
+									 * 1+exp((-6.4+pH)*ln(10))*(1+exp((-10.3+pH)*ln(10)))
 									 */
 									gasConcentrationCorrection
-											.add(1 + Math.exp(Double.parseDouble(factor.get(2)[6]) - 6.4)
-													* (1 + Math.exp(Double.parseDouble(factor.get(2)[6]) - 10.3)));
+											.add(1 + Math.exp((Double.parseDouble(factor.get(2)[6]) - 6.4)*Math.log(10))
+													* (1 + Math.exp((Double.parseDouble(factor.get(2)[6]) - 10.3)*Math.log(10))));
 									gasConcentrationConsumption.add(Double.parseDouble(factor.get(key)[4]));
 								}
 
@@ -1361,12 +1361,12 @@ public class Window extends JFrame {
 								if (ciT) {
 									listElement.add("Ci");
 									/*
-									 * Ci=Cco2*(1+exp(-6.4+pH)*(1+exp(-10.3+pH))), so get
-									 * 1+exp(-6.4+pH)*(1+exp(-10.3+pH))
+									 * Ci=Cco2*(1+exp((-6.4+pH)*ln(10))*(1+exp((-10.3+pH)*ln(10)))), so get
+									 * 1+exp((-6.4+pH)*ln(10))*(1+exp((-10.3+pH)*ln(10)))
 									 */
 									gasConcentrationCorrection
-											.add(1 + Math.exp(Double.parseDouble(factor.get(2)[6]) - 6.4)
-													* (1 + Math.exp(Double.parseDouble(factor.get(2)[6]) - 10.3)));
+											.add(1 + Math.exp((Double.parseDouble(factor.get(2)[6]) - 6.4)*Math.log(10))
+													* (1 + Math.exp((Double.parseDouble(factor.get(2)[6]) - 10.3)*Math.log(10))));
 									gasConcentrationConsumption.add(Double.parseDouble(factor.get(key)[4]));
 									j--;
 								}
@@ -1595,8 +1595,8 @@ public class Window extends JFrame {
 									if (ciT) {
 										j--;
 										/*
-										 * add carbon inorganic value (Ci=Cco2*(1+exp(-6.4+pH)) and
-										 * gasConcentrationCorrection.get(i - j - 1)=(1+exp(-6.4+pH)
+										 * add carbon inorganic value Ci=Cco2*Cco2*(1+exp((-6.4+pH)*ln(10))*(1+exp((-10.3+pH)*ln(10)))) and
+										 * gasConcentrationCorrection.get(i - j - 1)=1+exp((-6.4+pH)*ln(10))*(1+exp((-10.3+pH)*ln(10)))
 										 */
 										gasConcentrationLine[i - j] = gasConcentrationLine[i - j - 2]
 												* gasConcentrationCorrection.get(i - j - 1);
@@ -1611,8 +1611,8 @@ public class Window extends JFrame {
 									if (ciT) {
 										j--;
 										/*
-										 * add carbon inorganic value (Ci=Cco2*(1+exp(-6.4+pH)) and
-										 * gasConcentrationCorrection.get(i - j - 1)=(1+exp(-6.4+pH)
+										 * add carbon inorganic value Ci=Cco2*(1+exp((-6.4+pH)*ln(10))*(1+exp((-10.3+pH)*ln(10)))) and
+										 * gasConcentrationCorrection.get(i - j - 1)=1+exp((-6.4+pH)*ln(10))*(1+exp((-10.3+pH)*ln(10)))
 										 */
 										gasConcentrationLine[i - j] = gasConcentrationLine[i - j - 1]
 												* gasConcentrationCorrection.get(i - j - 1);
@@ -1814,8 +1814,8 @@ public class Window extends JFrame {
 											if (ciT) {
 												j--;
 												/*
-												 * add carbon inorganic value (Ci=Cco2*(1+exp(-6.4+pH)) and
-												 * gasConcentrationCorrection.get(i - j - 1)=(1+exp(-6.4+pH)
+												 * add carbon inorganic value Ci=Cco2*(1+exp((-6.4+pH)*ln(10))*(1+exp((-10.3+pH)*ln(10)))) and
+												 * gasConcentrationCorrection.get(i - j - 1)=1+exp((-6.4+pH)*ln(10))*(1+exp((-10.3+pH)*ln(10)))
 												 */
 												gasConcentrationLine[i - j] = gasConcentrationLine[i - j - 2]
 														* gasConcentrationCorrection.get(i - j - 1);
@@ -1830,8 +1830,8 @@ public class Window extends JFrame {
 											if (ciT) {
 												j--;
 												/*
-												 * add carbon inorganic value (Ci=Cco2*(1+exp(-6.4+pH)) and
-												 * gasConcentrationCorrection.get(i - j - 1)=(1+exp(-6.4+pH)
+												 * add carbon inorganic value Ci=Cco2*(1+exp((-6.4+pH)*ln(10))*(1+exp((-10.3+pH)*ln(10)))) and
+												 * gasConcentrationCorrection.get(i - j - 1)=1+exp((-6.4+pH)*ln(10))*(1+exp((-10.3+pH)*ln(10)))
 												 */
 												gasConcentrationLine[i - j] = gasConcentrationLine[i - j - 1]
 														* gasConcentrationCorrection.get(i - j - 1);
