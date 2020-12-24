@@ -743,7 +743,7 @@ public class Window extends JFrame {
 					+ "\n"
 
 					+ "You should have received a copy of the GNU General Public License along with this program. If not, see: https://www.gnu.org/licenses/."
-					+ "\n" + "\n" + "Version 1.0.1", "License", JOptionPane.INFORMATION_MESSAGE);
+					+ "\n" + "\n" + "Version 1.0.2", "License", JOptionPane.INFORMATION_MESSAGE);
 		}
 
 	}
@@ -1450,7 +1450,7 @@ public class Window extends JFrame {
 							gasConcentrationMoleculeList.addItem(listElement.get(i));
 
 							if (presenceMass) {
-								/* not display the mass, for denoised curves */
+								/* not	, for denoised curves */
 								if (i != indexMass) {
 									denoisedGasExchangeRatesColumnName[k] = listElement.get(i) + "  (µM / min)";
 									denoisedCumulatedGasExchangeColumnName[k] = listElement.get(i) + "  (µM)";
@@ -1468,12 +1468,17 @@ public class Window extends JFrame {
 							if (indexMass < indexgasConcentration32) {
 								indexgasExchangeRates32 = indexgasConcentration32 - 1;
 							}
+							else {
+								indexgasExchangeRates32 = indexgasConcentration32;
+							}
 							if (indexMass < indexgasConcentration36) {
 								indexgasExchangeRates36 = indexgasConcentration36 - 1;
 							}
+							else {
+								indexgasExchangeRates36 = indexgasConcentration36;
+							}
 							denoisedGasExchangeRatesMoleculeList.addItem("Oxygen Exchange Rates");
 						}
-
 						/* get the number of amperometric signals and nb of molecules (+time) */
 						nbAmperometricColumn = amperometricColumnName.length;
 						nbMoleculeColumn = gasConcentrationColumnName.length;
@@ -1899,8 +1904,8 @@ public class Window extends JFrame {
 								if (presenceMass && presence32 && presence36) {
 									/* time (i-1) */
 									o2ExchangeRatesLine[0] = gasExchangeRatesLine[0];
-									/* U0=v(36)*(1+c(32)/c(36)) */
-									o2ExchangeRatesLine[1] = (denoisedGasExchangeRatesLine[indexgasExchangeRates36]
+									/* U0=-(v(36)*(1+c(32)/c(36))) */
+									o2ExchangeRatesLine[1] = -(denoisedGasExchangeRatesLine[indexgasExchangeRates36]
 											* (1 + gasConcentrationData.get(nbRow - 1)[indexgasConcentration32]
 													/ gasConcentrationData.get(nbRow - 1)[indexgasConcentration36]));
 									/* E0=v(32)-c(36)*(c(32)/c(36)) */
