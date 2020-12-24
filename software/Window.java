@@ -1915,7 +1915,7 @@ public class Window extends JFrame {
 															/ gasConcentrationData
 																	.get(nbRow - 1)[indexgasConcentration36]));
 									/* Net=Eo+U0 */
-									o2ExchangeRatesLine[3] = o2ExchangeRatesLine[1] + o2ExchangeRatesLine[2];
+									o2ExchangeRatesLine[3] = -o2ExchangeRatesLine[1] + o2ExchangeRatesLine[2];
 
 									/* time (i) */
 									o2ExchangeLine[0] = gasConcentrationLine[0];
