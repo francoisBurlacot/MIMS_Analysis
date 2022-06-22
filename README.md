@@ -126,12 +126,12 @@ Feel free to modify and improve this version as long as it's in accord with the 
 
 
 ## Versioning
-1.0.1
+1.0.2
 
 
 
 ## Authors
-Francois Burlacot, contacts: francois.burlacot@telecom-paris.fr; adrien.burlacot@polytechnique.edu
+Francois Burlacot, contacts: francois.burlacot@telecom-paris-alumni.fr; adrien.burlacot@polytechnique.edu
 
 
 
