@@ -1,6 +1,4 @@
 # MIMS Analysis
-![CI](https://github.com/francoisBurlacot/MIMS_Analysis/actions/workflows/ci.yml/badge.svg)
-
 The purpose of this software is to treat and analyze data of a Membrane Inlet Mass Spectrometer (MIMS), in real time.
 
 
