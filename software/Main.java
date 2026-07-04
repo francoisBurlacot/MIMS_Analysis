@@ -6,6 +6,11 @@ import java.util.logging.FileHandler;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
+import javax.swing.UIManager;
+
+import com.formdev.flatlaf.FlatDarkLaf;
+import com.formdev.flatlaf.FlatLightLaf;
+
 /**
 Copyright (C) 2019-F.Burlacot
 
@@ -57,6 +62,23 @@ public class Main {
 		} catch (SecurityException | IOException e) {
 			Main.logger.info("Error: " + e.toString());
 		}
+
+		/* modern flat look and feel, falls back to the platform default on failure */
+		try {
+			/* restore the light/dark theme chosen last time (defaults to light) */
+			boolean dark = "dark".equals(Settings.load().getProperty("theme", "light"));
+			UIManager.setLookAndFeel(dark ? new FlatDarkLaf() : new FlatLightLaf());
+			/* soften corners and give a bit more breathing room to components */
+			UIManager.put("Button.arc", 10);
+			UIManager.put("Component.arc", 8);
+			UIManager.put("ProgressBar.arc", 8);
+			UIManager.put("TextComponent.arc", 6);
+			UIManager.put("Component.focusWidth", 1);
+			UIManager.put("Button.margin", new java.awt.Insets(6, 14, 6, 14));
+		} catch (Exception e) {
+			Main.logger.info("Could not set FlatLaf look and feel: " + e.toString());
+		}
+
 		try {
 			/* creating the main window */
 			logger.info("Creating the main Pannel");

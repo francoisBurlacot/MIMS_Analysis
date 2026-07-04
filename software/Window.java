@@ -24,6 +24,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
+
+import com.formdev.flatlaf.FlatDarkLaf;
+import com.formdev.flatlaf.FlatLightLaf;
 
 /**
 Copyright (C) 2019-F.Burlacot
@@ -41,6 +45,71 @@ public class Window extends JFrame {
 
 	private static final long serialVersionUID = 1L;
 
+	/* the six button-group "card" panels, kept around to re-theme them on light/dark switch */
+	private final List<JPanel> cardPanels = new ArrayList<>();
+
+	/*
+	 * flat, neutral "card" background/border shared by every button group panel,
+	 * re-read from the current look and feel each time (so it follows the
+	 * light/dark theme instead of staying a hardcoded color)
+	 */
+	private static Color cardBackground() {
+		Color color = UIManager.getColor("TextField.background");
+		return color != null ? color : new Color(0xFA, 0xFA, 0xFB);
+	}
+
+	private static Color cardBorderColor() {
+		Color color = UIManager.getColor("Component.borderColor");
+		return color != null ? color : new Color(0xDD, 0xE0, 0xE4);
+	}
+
+	/**
+	 * Border shared by the six button-group panels of the principal panel:
+	 * a subtle rounded outline with inner padding, replacing the old flat
+	 * checkerboard coloring for a more modern "card" look.
+	 */
+	private static javax.swing.border.Border cardBorder() {
+		return BorderFactory.createCompoundBorder(
+				new javax.swing.border.LineBorder(cardBorderColor(), 1, true),
+				BorderFactory.createEmptyBorder(14, 14, 14, 14));
+	}
+
+	/** Re-applies the card panels' background/border colors to match the current theme. */
+	private void refreshCardColors() {
+		Color background = cardBackground();
+		for (JPanel panel : cardPanels) {
+			panel.setBackground(background);
+			panel.setBorder(cardBorder());
+		}
+	}
+
+	/**
+	 * Switch the whole application (main window and every open chart window)
+	 * between the light and dark FlatLaf theme, and remember the choice for
+	 * next launch.
+	 */
+	private void applyTheme(String theme) {
+		try {
+			UIManager.setLookAndFeel("dark".equals(theme) ? new FlatDarkLaf() : new FlatLightLaf());
+		} catch (Exception e) {
+			Main.logger.severe("Could not switch theme: " + e.toString());
+			return;
+		}
+		SwingUtilities.updateComponentTreeUI(this);
+		for (JFrame frame : new JFrame[] { amperometricFrame, gasConcentrationFrame, gasExchangeRatesFrame,
+				cumulatedGasExchangeFrame, denoisedGasExchangeRatesFrame, denoisedCumulatedGasExchangeFrame,
+				o2ExchangeRatesFrame, o2ExchangeFrame, gasExchangeRateFunctionConcentrationFrame,
+				hydrogenaseActivityFrame }) {
+			if (frame != null) {
+				SwingUtilities.updateComponentTreeUI(frame);
+			}
+		}
+		/* the card panels' colors are explicit, not L&F defaults, so updateComponentTreeUI leaves them alone */
+		refreshCardColors();
+		settings.setProperty("theme", theme);
+		Settings.save(settings);
+	}
+
 	/* Each List<Double[]> contains the data of each corresponding dataset */
 	private List<Double[]> amperometricData;
 	private List<Double[]> gasConcentrationData;
@@ -56,13 +125,13 @@ public class Window extends JFrame {
 	/*
 	 * gasConcentrationCorrection is used to obtain gasConcentrationData. Each row
 	 * contains the factor C_max/((A_max-A_0)) of the corresponding molecule, for
-	 * the formula C(t)=A(t)聃_max/((A_max-A_0))
+	 * the formula C(t)=A(t)��C_max/((A_max-A_0))
 	 */
 	private List<Double> gasConcentrationCorrection;
 
 	/*
 	 * gasConcentrationConcumption contain the factor k, used to obtain
-	 * gasExchangeRatesData (v(t)=(delta(C(t)))/delta(t)-k聃(t))
+	 * gasExchangeRatesData (v(t)=(delta(C(t)))/delta(t)-k��C(t))
 	 */
 	private List<Double> gasConcentrationConsumption;
 
@@ -143,13 +212,21 @@ public class Window extends JFrame {
 	private Thread functionThread = null;
 
 	/*
+	 * upper bound for the moving average step spinners below: without a cap, a
+	 * mistyped huge value would force the app to re-sum a huge window on every
+	 * incoming row for the rest of the experiment
+	 */
+	private static final int MAX_MOVING_AVERAGE_STEP = 100_000;
+
+	/*
 	 * JSpinner to get the step of the moving average for gasExchangeRates,
 	 * denoisedGazExchangeRates and o2ExchangeRates
 	 */
-	private JSpinner movingGasExchangeRatesAverage = new JSpinner(new SpinnerNumberModel(10, 0, Integer.MAX_VALUE, 1));
+	private JSpinner movingGasExchangeRatesAverage = new JSpinner(
+			new SpinnerNumberModel(10, 0, MAX_MOVING_AVERAGE_STEP, 1));
 	private JSpinner movingDenoisedGasExchangeRatesAverage = new JSpinner(
-			new SpinnerNumberModel(10, 0, Integer.MAX_VALUE, 1));
-	private JSpinner movingO2ExchangeAverage = new JSpinner(new SpinnerNumberModel(10, 0, Integer.MAX_VALUE, 1));
+			new SpinnerNumberModel(10, 0, MAX_MOVING_AVERAGE_STEP, 1));
+	private JSpinner movingO2ExchangeAverage = new JSpinner(new SpinnerNumberModel(10, 0, MAX_MOVING_AVERAGE_STEP, 1));
 
 	/*
 	 * subpanel containing the text and JSpinner for gasExchangeRates,
@@ -194,6 +271,17 @@ public class Window extends JFrame {
 	/* normalization factor */
 	private double normalizationFactorValue = 1;
 
+	/*
+	 * pKa1 (CO2/HCO3-) and pKa2 (HCO3-/CO3--) constants, used in the Ci
+	 * (dissolved inorganic carbon) calculation: Ci=Cco2*(1+exp((-pKa1+pH)*ln(10))
+	 * *(1+exp((-pKa2+pH)*ln(10))))
+	 */
+	private double pKa1Value = 6.4;
+	private double pKa2Value = 10.3;
+
+	/* persisted user preferences (normalization factor, pKa, display options, theme) */
+	private Properties settings;
+
 	/* index of last row received in our csv and added to amperometricData */
 	private int nbRow = 0;
 
@@ -231,12 +319,32 @@ public class Window extends JFrame {
 	private ImageIcon img;
 
 	/* subPannel at the bottom of the window, displaying names of opened files */
-	private JPanel bottom = new JPanel(new GridLayout(1, 3, 10, 10));
+	private JPanel bottom = new JPanel(new GridLayout(1, 3, 16, 10));
 
 	/**
 	 * Window constructor
 	 */
 	public Window() {
+
+		/* restore persisted preferences (normalization factor, pKa, display options, theme) */
+		settings = Settings.load();
+		try {
+			normalizationFactorValue = Double.parseDouble(settings.getProperty("normalizationFactor", "1"));
+		} catch (NumberFormatException e) {
+			normalizationFactorValue = 1;
+		}
+		try {
+			pKa1Value = Double.parseDouble(settings.getProperty("pKa1", "6.4"));
+		} catch (NumberFormatException e) {
+			pKa1Value = 6.4;
+		}
+		try {
+			pKa2Value = Double.parseDouble(settings.getProperty("pKa2", "10.3"));
+		} catch (NumberFormatException e) {
+			pKa2Value = 10.3;
+		}
+		h2oT = Boolean.parseBoolean(settings.getProperty("displayH2O", "true"));
+		ciT = Boolean.parseBoolean(settings.getProperty("displayCi", "true"));
 
 		/* define layout */
 		setLayout(new BorderLayout());
@@ -248,6 +356,7 @@ public class Window extends JFrame {
 		openData = new OpenData("Open Data");
 		OpenFactor openFactor = new OpenFactor("Open Factor");
 		NormalizationFactor normalizationFactor = new NormalizationFactor("Normalization Factor");
+		PkaConstants pkaConstants = new PkaConstants("pKa Constants (Ci)");
 		DisplayParameter DisplayParameter = new DisplayParameter("Molecule to Display");
 		Pause pause = new Pause("Pause");
 		Play play = new Play("Play");
@@ -257,6 +366,7 @@ public class Window extends JFrame {
 		JMenu file = new JMenu("File");
 		JMenu edit = new JMenu("Edit");
 		JMenu display = new JMenu("Display");
+		JMenu view = new JMenu("View");
 		JMenu about = new JMenu("About");
 		JMenuBar menuBar = new JMenuBar();
 
@@ -271,9 +381,24 @@ public class Window extends JFrame {
 		edit.add(play);
 		edit.add(pause);
 		edit.add(normalizationFactor);
+		edit.add(pkaConstants);
 
 		/* add the actions to the JMenu 'Display' */
 		display.add(DisplayParameter);
+
+		/* add the theme toggle to the JMenu 'View' */
+		JRadioButtonMenuItem lightTheme = new JRadioButtonMenuItem("Light Theme");
+		JRadioButtonMenuItem darkTheme = new JRadioButtonMenuItem("Dark Theme");
+		ButtonGroup themeGroup = new ButtonGroup();
+		themeGroup.add(lightTheme);
+		themeGroup.add(darkTheme);
+		boolean darkThemeSaved = "dark".equals(settings.getProperty("theme", "light"));
+		lightTheme.setSelected(!darkThemeSaved);
+		darkTheme.setSelected(darkThemeSaved);
+		lightTheme.addActionListener(ev -> applyTheme("light"));
+		darkTheme.addActionListener(ev -> applyTheme("dark"));
+		view.add(lightTheme);
+		view.add(darkTheme);
 
 		/* add the action to the JMenu 'About' */
 		about.add(license);
@@ -282,25 +407,39 @@ public class Window extends JFrame {
 		menuBar.add(file);
 		menuBar.add(edit);
 		menuBar.add(display);
+		menuBar.add(view);
 		menuBar.add(about);
 		setJMenuBar(menuBar);
+
+		/* toolbar with quick access to the most common actions, in addition to the menus */
+		JToolBar toolBar = new JToolBar();
+		toolBar.setFloatable(false);
+		toolBar.setBorder(BorderFactory.createCompoundBorder(
+				BorderFactory.createMatteBorder(0, 0, 1, 0, cardBorderColor()),
+				BorderFactory.createEmptyBorder(6, 10, 6, 10)));
+		toolBar.add(new JButton(openFactor));
+		toolBar.add(new JButton(openData));
+		toolBar.addSeparator();
+		toolBar.add(new JButton(play));
+		toolBar.add(new JButton(pause));
+		add(toolBar, BorderLayout.NORTH);
 
 		/*
 		 * create column name for o2ExchangeRates, o2Exchange and hydrogenaseActivity
 		 * (the names are final and don't depend on the data)
 		 */
 		o2ExchangeRatesColumnName[0] = "Time (min)";
-		o2ExchangeRatesColumnName[1] = "Uo (然 / min)";
-		o2ExchangeRatesColumnName[2] = "Eo (然 / min)";
-		o2ExchangeRatesColumnName[3] = "Net (然 / min)";
+		o2ExchangeRatesColumnName[1] = "Uo (繕M / min)";
+		o2ExchangeRatesColumnName[2] = "Eo (繕M / min)";
+		o2ExchangeRatesColumnName[3] = "Net (繕M / min)";
 
 		o2ExchangeColumnName[0] = "Time (min)";
-		o2ExchangeColumnName[1] = "Uo (然)";
-		o2ExchangeColumnName[2] = "Eo (然)";
-		o2ExchangeColumnName[3] = "Net (然)";
+		o2ExchangeColumnName[1] = "Uo (繕M)";
+		o2ExchangeColumnName[2] = "Eo (繕M)";
+		o2ExchangeColumnName[3] = "Net (繕M)";
 
 		hydrogenaseActivityColumnName[0] = "Time (min)";
-		hydrogenaseActivityColumnName[1] = "Hydrogenase Activity  (然 / min)";
+		hydrogenaseActivityColumnName[1] = "Hydrogenase Activity  (繕M / min)";
 
 		/*
 		 * get the last paths of loading factor, loading CSV and saving XLSX (if one
@@ -425,10 +564,10 @@ public class Window extends JFrame {
 		 * define a characteristic grid layout, with borders, used in each element of
 		 * the principal panel, to contain two buttons (or one button and one subPanel)
 		 */
-		GridLayout g = new GridLayout(2, 1, 10, 10);
-		/* 10 pixel of space between each column and each row */
-		g.setHgap(10);
-		g.setVgap(10);
+		GridLayout g = new GridLayout(2, 1, 12, 12);
+		/* 12 pixel of space between each column and each row */
+		g.setHgap(12);
+		g.setVgap(12);
 
 		/* define the 6 subPnale contained in the central panel of our mindow */
 		JPanel panel1 = new JPanel(g);
@@ -438,13 +577,19 @@ public class Window extends JFrame {
 		JPanel panel5 = new JPanel(g);
 		JPanel panel6 = new JPanel(g);
 
-		/* create border of 10 pixel */
-		panel1.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-		panel2.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-		panel3.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-		panel4.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-		panel5.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-		panel6.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+		/* modern "card" style: subtle rounded border with inner padding */
+		cardPanels.add(panel1);
+		cardPanels.add(panel2);
+		cardPanels.add(panel3);
+		cardPanels.add(panel4);
+		cardPanels.add(panel5);
+		cardPanels.add(panel6);
+		refreshCardColors();
+
+		/* space out the cards themselves within the principal panel */
+		principalPanel.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+		((GridLayout) principalPanel.getLayout()).setHgap(12);
+		((GridLayout) principalPanel.getLayout()).setVgap(12);
 
 		/* add each panel to the central principal panel */
 		principalPanel.add(panel1);
@@ -453,14 +598,6 @@ public class Window extends JFrame {
 		principalPanel.add(panel4);
 		principalPanel.add(panel5);
 		principalPanel.add(panel6);
-
-		/* color our panels to have a checkerboard (this is just artistic purpose) */
-		panel1.setBackground(new Color(193, 226, 140));
-		panel2.setBackground(new Color(183, 218, 220));
-		panel3.setBackground(new Color(193, 226, 140));
-		panel4.setBackground(new Color(183, 218, 220));
-		panel5.setBackground(new Color(193, 226, 140));
-		panel6.setBackground(new Color(183, 218, 220));
 
 		/*
 		 * then we are going to define each subPanel and add their corresponding
@@ -549,22 +686,32 @@ public class Window extends JFrame {
 		/* the last panel containing the last button */
 		panel6.add(hydrogenaseActivityCurve);
 
+		/* status bar style border: thin top separator with inner padding */
+		bottom.setBorder(BorderFactory.createCompoundBorder(
+				BorderFactory.createMatteBorder(1, 0, 0, 0, cardBorderColor()),
+				BorderFactory.createEmptyBorder(8, 14, 8, 14)));
+
 		/* Add text two the bottom line panel */
 		bottom.add(new JLabel("Factor File: "));
 		bottom.add(new JLabel("Data File: "));
 		bottom.add(new JLabel("Normalization Factor: " + normalizationFactorValue));
 
-		/* set icon of of our window */
-		img = new ImageIcon("logo.png");
+		/*
+		 * set icon of our window: use the copy bundled inside the jar (on the
+		 * classpath) so the software doesn't depend on a logo.png file sitting next
+		 * to it; fall back to that file if run from loose class files
+		 */
+		java.net.URL logoResource = Window.class.getResource("/logo.png");
+		img = logoResource != null ? new ImageIcon(logoResource) : new ImageIcon("logo.png");
 		setIconImage(img.getImage());
 
 		/* add principal panel and bottom panel to our window */
 		add(principalPanel, BorderLayout.CENTER);
 		add(bottom, BorderLayout.SOUTH);
 
-		/* set the CheckBox to checked by default */
-		h2oPresent.setSelected(true);
-		ciPresent.setSelected(true);
+		/* set the CheckBox state from the persisted (or default) display options */
+		h2oPresent.setSelected(h2oT);
+		ciPresent.setSelected(ciT);
 
 		/* Define the popUp window displayed when some one clicked on the exit button */
 		setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
@@ -676,6 +823,92 @@ public class Window extends JFrame {
 				bottom.remove(2);
 				bottom.add(new JLabel("Normalization Factor: " + normalizationFactorValue));
 				Window.this.revalidate();
+				settings.setProperty("normalizationFactor", String.valueOf(normalizationFactorValue));
+				Settings.save(settings);
+
+				/* if factor file already opened, relaunch the process and reinitialize data */
+				if (dataFilePath != null) {
+					getData(dataFilePath);
+				}
+			}
+
+		}
+
+	}
+
+	/**
+	 * Edit the pKa1 (CO2/HCO3-) and pKa2 (HCO3-/CO3--) constants used to compute
+	 * the dissolved inorganic carbon (Ci) from the CO2 concentration and pH
+	 */
+	class PkaConstants extends AbstractAction {
+		private static final long serialVersionUID = 1L;
+		private Double pKa1 = pKa1Value;
+		private Double pKa2 = pKa2Value;
+
+		public PkaConstants(String s) {
+			super(s);
+		}
+
+		/*
+		 * function which displays a pop up window, until the user enters correct
+		 * values or closes it
+		 */
+		public void ChoosePka() {
+
+			JTextField pKa1Field = new JTextField(String.valueOf(pKa1Value));
+			JTextField pKa2Field = new JTextField(String.valueOf(pKa2Value));
+
+			/* current values shown inside the dialog body, not in the (width-limited) title bar */
+			JLabel info = new JLabel(
+					"Current values: pKa1 = " + pKa1Value + ", pKa2 = " + pKa2Value);
+			info.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
+
+			JPanel fields = new JPanel(new GridLayout(2, 2, 5, 5));
+			fields.add(new JLabel("pKa1 (CO2/HCO3-): "));
+			fields.add(pKa1Field);
+			fields.add(new JLabel("pKa2 (HCO3-/CO3--): "));
+			fields.add(pKa2Field);
+
+			JPanel panel = new JPanel(new BorderLayout());
+			panel.add(info, BorderLayout.NORTH);
+			panel.add(fields, BorderLayout.CENTER);
+
+			int choice = JOptionPane.showConfirmDialog(Window.this, panel, "pKa Constants (Ci Calculation)",
+					JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+			if (choice == JOptionPane.OK_OPTION) {
+				try {
+					pKa1 = Double.parseDouble(pKa1Field.getText());
+					pKa2 = Double.parseDouble(pKa2Field.getText());
+				} /* not a number entered */
+				catch (NumberFormatException e) {
+					infoBox(Window.this,
+							"There is an issue with your entered value: " + "\n" + "Please enter numbers !",
+							"pKa Constants");
+					ChoosePka();
+					return;
+				}
+				/* pKa1 (CO2/HCO3-) must be lower than pKa2 (HCO3-/CO3--) for the equilibrium to make sense */
+				if (pKa1 >= pKa2) {
+					infoBox(Window.this,
+							"There is an issue with your entered values: " + "\n" + "pKa1 must be lower than pKa2",
+							"pKa Constants");
+					ChoosePka();
+				}
+			}
+		}
+
+		public void actionPerformed(ActionEvent e) {
+			/* popup window */
+			ChoosePka();
+			/* edit pKa values if needed */
+			if (pKa1Value != pKa1 || pKa2Value != pKa2) {
+				pKa1Value = pKa1;
+				pKa2Value = pKa2;
+				Main.logger.info("Changed pKa1 to " + pKa1Value + " and pKa2 to " + pKa2Value);
+				settings.setProperty("pKa1", String.valueOf(pKa1Value));
+				settings.setProperty("pKa2", String.valueOf(pKa2Value));
+				Settings.save(settings);
 
 				/* if factor file already opened, relaunch the process and reinitialize data */
 				if (dataFilePath != null) {
@@ -709,6 +942,9 @@ public class Window extends JFrame {
 					/* change the value of boolean */
 					ciT = ciPresent.isSelected();
 					h2oT = h2oPresent.isSelected();
+					settings.setProperty("displayCi", String.valueOf(ciT));
+					settings.setProperty("displayH2O", String.valueOf(h2oT));
+					Settings.save(settings);
 
 					/* if factor file already opened, relaunch the process and reinitialize data */
 					if (dataFilePath != null) {
@@ -743,7 +979,7 @@ public class Window extends JFrame {
 					+ "\n"
 
 					+ "You should have received a copy of the GNU General Public License along with this program. If not, see: https://www.gnu.org/licenses/."
-					+ "\n" + "\n" + "Version 1.0.2", "License", JOptionPane.INFORMATION_MESSAGE);
+					+ "\n" + "\n" + "Version 1.0.3", "License", JOptionPane.INFORMATION_MESSAGE);
 		}
 
 	}
@@ -1048,8 +1284,24 @@ public class Window extends JFrame {
 	}
 
 	/**
+	 * Fast, non-regex equivalent of
+	 * line.replaceFirst(";", "").replaceAll(",", ".").split(";"): drops the
+	 * leading "$Flags$" column, swaps decimal commas for dots, and splits on
+	 * ";". Used in the real-time data ingestion loop (called once per incoming
+	 * row for the whole duration of an experiment) to avoid recompiling a regex
+	 * Pattern on every call.
+	 */
+	private static String[] parseDataLine(String line) {
+		int firstSemicolon = line.indexOf(';');
+		String withoutFlags = firstSemicolon >= 0
+				? line.substring(0, firstSemicolon) + line.substring(firstSemicolon + 1)
+				: line;
+		return withoutFlags.replace(',', '.').split(";");
+	}
+
+	/**
 	 * Function which will check for new data, and update each List<double[]>
-	 * 
+	 *
 	 * @param address:
 	 *            address of the current data file
 	 */
@@ -1255,7 +1507,7 @@ public class Window extends JFrame {
 						/* Get the first row, which is the list of (M/Z) */
 						line = fichier.readLine();
 						/* replace first serve to delete the column "$Flag$ which is empty */
-						workingLine = line.replaceFirst(";", "").replaceAll(",", ".").split(";");
+						workingLine = parseDataLine(line);
 
 						/*
 						 * contains the list of M/Z value + time (the -1 is here to delete the last
@@ -1318,10 +1570,10 @@ public class Window extends JFrame {
 								/*
 								 * gasConcentrationCorrection is used to obtain gasConcentrationData, each row
 								 * contains the factor C_max/((A_max-A_0)) of the corresponding molecule, for
-								 * the formula C(t)=(A(t)-A_0)聃_max/((A_max-A_0))
+								 * the formula C(t)=(A(t)-A_0)��C_max/((A_max-A_0))
 								 * 
 								 * gasConcentrationConcumption contain the factor k, used to obtain
-								 * gasExchangeRatesData (v(t)=(delta(C(t)))/delta(t)-k聃(t))
+								 * gasExchangeRatesData (v(t)=(delta(C(t)))/delta(t)-k��C(t))
 								 */
 
 								/*
@@ -1342,12 +1594,11 @@ public class Window extends JFrame {
 									listElement.add("Ci");
 									j--;
 									/*
-									 * Ci=Cco2*(1+exp((-6.4+pH)*ln(10))*(1+exp((-10.3+pH)*ln(10)))), so get
-									 * 1+exp((-6.4+pH)*ln(10))*(1+exp((-10.3+pH)*ln(10)))
+									 * Ci=Cco2*(1+exp((-pKa1+pH)*ln(10))*(1+exp((-pKa2+pH)*ln(10)))), so get
+									 * 1+exp((-pKa1+pH)*ln(10))*(1+exp((-pKa2+pH)*ln(10)))
 									 */
-									gasConcentrationCorrection
-											.add(1 + Math.exp((Double.parseDouble(factor.get(2)[6]) - 6.4)*Math.log(10))
-													* (1 + Math.exp((Double.parseDouble(factor.get(2)[6]) - 10.3)*Math.log(10))));
+									gasConcentrationCorrection.add(CarbonateChemistry.ciCorrectionFactor(
+											Double.parseDouble(factor.get(2)[6]), pKa1Value, pKa2Value));
 									gasConcentrationConsumption.add(Double.parseDouble(factor.get(key)[4]));
 								}
 
@@ -1361,12 +1612,11 @@ public class Window extends JFrame {
 								if (ciT) {
 									listElement.add("Ci");
 									/*
-									 * Ci=Cco2*(1+exp((-6.4+pH)*ln(10))*(1+exp((-10.3+pH)*ln(10)))), so get
-									 * 1+exp((-6.4+pH)*ln(10))*(1+exp((-10.3+pH)*ln(10)))
+									 * Ci=Cco2*(1+exp((-pKa1+pH)*ln(10))*(1+exp((-pKa2+pH)*ln(10)))), so get
+									 * 1+exp((-pKa1+pH)*ln(10))*(1+exp((-pKa2+pH)*ln(10)))
 									 */
-									gasConcentrationCorrection
-											.add(1 + Math.exp((Double.parseDouble(factor.get(2)[6]) - 6.4)*Math.log(10))
-													* (1 + Math.exp((Double.parseDouble(factor.get(2)[6]) - 10.3)*Math.log(10))));
+									gasConcentrationCorrection.add(CarbonateChemistry.ciCorrectionFactor(
+											Double.parseDouble(factor.get(2)[6]), pKa1Value, pKa2Value));
 									gasConcentrationConsumption.add(Double.parseDouble(factor.get(key)[4]));
 									j--;
 								}
@@ -1445,15 +1695,15 @@ public class Window extends JFrame {
 
 						int k = 1;
 						for (int i = 1; i < listElement.size(); i++) {
-							gasConcentrationColumnName[i] = listElement.get(i) + "  (然)";
-							gasExchangeRatesColumnName[i] = listElement.get(i) + "  (然 / min)";
+							gasConcentrationColumnName[i] = listElement.get(i) + "  (繕M)";
+							gasExchangeRatesColumnName[i] = listElement.get(i) + "  (繕M / min)";
 							gasConcentrationMoleculeList.addItem(listElement.get(i));
 
 							if (presenceMass) {
 								/* not	, for denoised curves */
 								if (i != indexMass) {
-									denoisedGasExchangeRatesColumnName[k] = listElement.get(i) + "  (然 / min)";
-									denoisedCumulatedGasExchangeColumnName[k] = listElement.get(i) + "  (然)";
+									denoisedGasExchangeRatesColumnName[k] = listElement.get(i) + "  (繕M / min)";
+									denoisedCumulatedGasExchangeColumnName[k] = listElement.get(i) + "  (繕M)";
 									denoisedGasExchangeRatesMoleculeList.addItem(listElement.get(i));
 									k++;
 								}
@@ -1485,10 +1735,18 @@ public class Window extends JFrame {
 
 						/* get the second row of our data and treat it */
 						line = fichier.readLine();
-						workingLine = line.replaceFirst(";", "").replaceAll(",", ".").split(";");
+						workingLine = parseDataLine(line);
+
+						/*
+						 * reused for every row of this thread instead of instantiating a new
+						 * SimpleDateFormat per row; safe because this thread is the sole user of
+						 * this instance (SimpleDateFormat isn't thread-safe, but nothing else here
+						 * touches it)
+						 */
+						SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.S");
 
 						/* get the first date of the first value and set it to reference */
-						Date refDate = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.S").parse(workingLine[0]);
+						Date refDate = dateFormat.parse(workingLine[0]);
 
 						/* create line for each data */
 						Double[] amperometricLine = new Double[nbAmperometricColumn];
@@ -1515,7 +1773,7 @@ public class Window extends JFrame {
 
 							/* get current time for the row (in min) */
 							if (i == 0) {
-								Date date = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.S").parse(workingLine[0]);
+								Date date = dateFormat.parse(workingLine[0]);
 								amperometricLine[i] = (((double) date.getTime() - (double) refDate.getTime()) / 1000
 										/ 60);
 								gasConcentrationLine[i] = amperometricLine[i];
@@ -1565,7 +1823,7 @@ public class Window extends JFrame {
 											* gasConcentrationCorrection.get(i - j - 1);
 									/*
 									 * gasConcentrationCorrection.get(i - j - 1) is here because
-									 * C(t)=(A(t)-A(0))聃_max/((A_max-A_0))
+									 * C(t)=(A(t)-A(0))��C_max/((A_max-A_0))
 									 */
 
 									/* decrease j (so increase i-j) */
@@ -1600,8 +1858,8 @@ public class Window extends JFrame {
 									if (ciT) {
 										j--;
 										/*
-										 * add carbon inorganic value Ci=Cco2*Cco2*(1+exp((-6.4+pH)*ln(10))*(1+exp((-10.3+pH)*ln(10)))) and
-										 * gasConcentrationCorrection.get(i - j - 1)=1+exp((-6.4+pH)*ln(10))*(1+exp((-10.3+pH)*ln(10)))
+										 * add carbon inorganic value Ci=Cco2*Cco2*(1+exp((-pKa1+pH)*ln(10))*(1+exp((-pKa2+pH)*ln(10)))) and
+										 * gasConcentrationCorrection.get(i - j - 1)=1+exp((-pKa1+pH)*ln(10))*(1+exp((-pKa2+pH)*ln(10)))
 										 */
 										gasConcentrationLine[i - j] = gasConcentrationLine[i - j - 2]
 												* gasConcentrationCorrection.get(i - j - 1);
@@ -1616,8 +1874,8 @@ public class Window extends JFrame {
 									if (ciT) {
 										j--;
 										/*
-										 * add carbon inorganic value Ci=Cco2*(1+exp((-6.4+pH)*ln(10))*(1+exp((-10.3+pH)*ln(10)))) and
-										 * gasConcentrationCorrection.get(i - j - 1)=1+exp((-6.4+pH)*ln(10))*(1+exp((-10.3+pH)*ln(10)))
+										 * add carbon inorganic value Ci=Cco2*(1+exp((-pKa1+pH)*ln(10))*(1+exp((-pKa2+pH)*ln(10)))) and
+										 * gasConcentrationCorrection.get(i - j - 1)=1+exp((-pKa1+pH)*ln(10))*(1+exp((-pKa2+pH)*ln(10)))
 										 */
 										gasConcentrationLine[i - j] = gasConcentrationLine[i - j - 1]
 												* gasConcentrationCorrection.get(i - j - 1);
@@ -1721,14 +1979,14 @@ public class Window extends JFrame {
 								valueETOH = 0;
 								valueNO = 0;
 								presence30 = -1;
-								workingLine = line.replaceFirst(";", "").replaceAll(",", ".").split(";");
+								workingLine = parseDataLine(line);
 
 								/* same as above */
 								for (int i = 0; i < nbAmperometricColumn; i++) {
 
 									/* get current time for the row (in min) */
 									if (i == 0) {
-										Date date = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.S").parse(workingLine[0]);
+										Date date = dateFormat.parse(workingLine[0]);
 										amperometricLine[i] = (((double) date.getTime() - (double) refDate.getTime())
 												/ 1000 / 60);
 										gasConcentrationLine[i] = amperometricLine[i];
@@ -1782,7 +2040,7 @@ public class Window extends JFrame {
 															* gasConcentrationCorrection.get(i - j - 1);
 											/*
 											 * gasConcentrationCorrection.get(i - j - 1) is here because
-											 * C(t)=(A(t)-A(0))聃_max/((A_max-A_0))
+											 * C(t)=(A(t)-A(0))��C_max/((A_max-A_0))
 											 */
 
 											/* decrease j (so increase i-j) */
@@ -1819,8 +2077,8 @@ public class Window extends JFrame {
 											if (ciT) {
 												j--;
 												/*
-												 * add carbon inorganic value Ci=Cco2*(1+exp((-6.4+pH)*ln(10))*(1+exp((-10.3+pH)*ln(10)))) and
-												 * gasConcentrationCorrection.get(i - j - 1)=1+exp((-6.4+pH)*ln(10))*(1+exp((-10.3+pH)*ln(10)))
+												 * add carbon inorganic value Ci=Cco2*(1+exp((-pKa1+pH)*ln(10))*(1+exp((-pKa2+pH)*ln(10)))) and
+												 * gasConcentrationCorrection.get(i - j - 1)=1+exp((-pKa1+pH)*ln(10))*(1+exp((-pKa2+pH)*ln(10)))
 												 */
 												gasConcentrationLine[i - j] = gasConcentrationLine[i - j - 2]
 														* gasConcentrationCorrection.get(i - j - 1);
@@ -1835,8 +2093,8 @@ public class Window extends JFrame {
 											if (ciT) {
 												j--;
 												/*
-												 * add carbon inorganic value Ci=Cco2*(1+exp((-6.4+pH)*ln(10))*(1+exp((-10.3+pH)*ln(10)))) and
-												 * gasConcentrationCorrection.get(i - j - 1)=1+exp((-6.4+pH)*ln(10))*(1+exp((-10.3+pH)*ln(10)))
+												 * add carbon inorganic value Ci=Cco2*(1+exp((-pKa1+pH)*ln(10))*(1+exp((-pKa2+pH)*ln(10)))) and
+												 * gasConcentrationCorrection.get(i - j - 1)=1+exp((-pKa1+pH)*ln(10))*(1+exp((-pKa2+pH)*ln(10)))
 												 */
 												gasConcentrationLine[i - j] = gasConcentrationLine[i - j - 1]
 														* gasConcentrationCorrection.get(i - j - 1);
@@ -3205,10 +3463,10 @@ public class Window extends JFrame {
 					/*know if we want oxygen exchange rates or not, in this case, special characteristic*/
 					if (gasExchangeRatesMolecule == "Oxygen Exchange Rates") {
 						gasExchangeRateFunctionConcentrationColumnName = new String[4];
-						gasExchangeRateFunctionConcentrationColumnName[0] = gasConcentrationMolecule + " (然)";
-						gasExchangeRateFunctionConcentrationColumnName[1] = "Uo (然 / min)";
-						gasExchangeRateFunctionConcentrationColumnName[2] = "Eo (然 / min)";
-						gasExchangeRateFunctionConcentrationColumnName[3] = "Net (然 / min)";
+						gasExchangeRateFunctionConcentrationColumnName[0] = gasConcentrationMolecule + " (繕M)";
+						gasExchangeRateFunctionConcentrationColumnName[1] = "Uo (繕M / min)";
+						gasExchangeRateFunctionConcentrationColumnName[2] = "Eo (繕M / min)";
+						gasExchangeRateFunctionConcentrationColumnName[3] = "Net (繕M / min)";
 
 						/* get our data if we want o2 in our curve */
 						for (int i = 0; i < nbRow - 1; i++) {
@@ -3244,8 +3502,8 @@ public class Window extends JFrame {
 					/* else create our dataset with the same idea, but only two column (one curve) */
 					else {
 						gasExchangeRateFunctionConcentrationColumnName = new String[2];
-						gasExchangeRateFunctionConcentrationColumnName[0] = gasConcentrationMolecule + " (然)";
-						gasExchangeRateFunctionConcentrationColumnName[1] = gasExchangeRatesMolecule + " (然 / min)";
+						gasExchangeRateFunctionConcentrationColumnName[0] = gasConcentrationMolecule + " (繕M)";
+						gasExchangeRateFunctionConcentrationColumnName[1] = gasExchangeRatesMolecule + " (繕M / min)";
 						/* get our data */
 						for (int i = 0; i < nbRow - 1; i++) {
 							line = new Double[2];
@@ -3884,19 +4142,19 @@ public class Window extends JFrame {
 	}
 
 	/*
-	 * infoBox which display an error message in front of the corresponding window
+	 * infoBox displays a non-blocking warning in front of the corresponding
+	 * window or panel: unlike a modal JOptionPane, it doesn't freeze the calling
+	 * thread (some callers run on the real-time data polling thread, not the
+	 * EDT) and doesn't block the rest of the UI (other chart windows keep
+	 * updating) until the user dismisses it. Always shown from the EDT since
+	 * Swing components can only be touched safely from there.
 	 */
-	public static void infoBox(JFrame window, String infoMessage, String titleBar) {
-		JOptionPane.showMessageDialog(window, infoMessage, "Warning " + titleBar, JOptionPane.ERROR_MESSAGE);
-
-	}
-
-	/*
-	 * infoBox which display an error message in front of the corresponding panel
-	 * (JTable)
-	 */
-	public static void infoBox(JPanel panel, String infoMessage, String titleBar) {
-		JOptionPane.showMessageDialog(panel, infoMessage, "Warning " + titleBar, JOptionPane.ERROR_MESSAGE);
-
+	public static void infoBox(java.awt.Component parent, String infoMessage, String titleBar) {
+		SwingUtilities.invokeLater(() -> {
+			JOptionPane pane = new JOptionPane(infoMessage, JOptionPane.ERROR_MESSAGE);
+			JDialog dialog = pane.createDialog(parent, "Warning " + titleBar);
+			dialog.setModal(false);
+			dialog.setVisible(true);
+		});
 	}
 }

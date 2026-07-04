@@ -18,6 +18,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.NumberAxis;
@@ -42,6 +43,10 @@ You should have received a copy of the GNU General Public License along with thi
  */
 public class DisplayCurve extends JPanel {
 	private static final long serialVersionUID = 1L;
+
+	/* maximum number of points kept per curve on screen, see createDataset() */
+	private static final int MAX_CHART_POINTS = 20_000;
+
 	private ChartPanel chartPanel;
 
 	/* The scrollPane contain the JTable */
@@ -94,11 +99,6 @@ public class DisplayCurve extends JPanel {
 	/* lower and uper abscissa value */
 	private double upperAbscissa = Double.NEGATIVE_INFINITY;
 	private double lowerAbscissa = Double.POSITIVE_INFINITY;
-
-	/*
-	 * boolean used two avoid two process from updating the jTable at the same time
-	 */
-	private boolean updatingTable = false;
 
 	/**
 	 * Constructor of the JChart and the JTable
@@ -224,6 +224,13 @@ public class DisplayCurve extends JPanel {
 			 * already be taken in account
 			 */
 			XYSeries serie = new XYSeries(column[i]);
+			/*
+			 * bound the number of points kept in the chart series so that repaint cost
+			 * doesn't keep growing over a very long (multi-hour) real-time experiment;
+			 * the underlying "data" list (used for the table's min/max/value/average)
+			 * keeps every row regardless, only the on-screen curve is capped
+			 */
+			serie.setMaximumItemCount(MAX_CHART_POINTS);
 			for (int j = 0; j < datas.size(); j++) {
 				/* we add the (X,Y) to the XYserie */
 				serie.add(datas.get(j)[0], datas.get(j)[i]);
@@ -540,52 +547,60 @@ public class DisplayCurve extends JPanel {
 	 * @param data: current data of our chart
 	 */
 	public void addData(List<Double[]> datas, int nbRow) {
-		data = datas;
-		/* boolean to know if we have to change the JTable */
-		boolean tableChange = false;
-		/* add data while the current data row isn't equal to our last added data row */
-		while (currentRow < nbRow) {
-			for (int i = 0; i < nbColumn - 1; i++) {
-				/* boolean to know if we have to change the axis range */
-				boolean axisChange = false;
-				/* add the new data to our serie for each serie of data */
-				listSerie.get(i).addOrUpdate(data.get(currentRow)[0], data.get(currentRow)[i + 1]);
+		/*
+		 * every mutation below touches Swing/JFreeChart components (XYSeries, axis,
+		 * JTable model): run it on the Event Dispatch Thread instead of the caller's
+		 * background polling thread, which is the only thread-safe way to touch
+		 * these objects. The polling threads call addData roughly every 1.5s, so
+		 * queuing the update asynchronously here never builds up a backlog.
+		 */
+		SwingUtilities.invokeLater(() -> {
+			data = datas;
+			/* boolean to know if we have to change the JTable */
+			boolean tableChange = false;
+			/* add data while the current data row isn't equal to our last added data row */
+			while (currentRow < nbRow) {
+				for (int i = 0; i < nbColumn - 1; i++) {
+					/* boolean to know if we have to change the axis range */
+					boolean axisChange = false;
+					/* add the new data to our serie for each serie of data */
+					listSerie.get(i).addOrUpdate(data.get(currentRow)[0], data.get(currentRow)[i + 1]);
 
-				/* edit values of upper and lower abscissa if needed */
-				if (upperAbscissa < data.get(currentRow)[0]) {
-					upperAbscissa = data.get(currentRow)[0];
-				}
-				if (lowerAbscissa > data.get(currentRow)[0]) {
-					lowerAbscissa = data.get(currentRow)[0];
-				}
+					/* edit values of upper and lower abscissa if needed */
+					if (upperAbscissa < data.get(currentRow)[0]) {
+						upperAbscissa = data.get(currentRow)[0];
+					}
+					if (lowerAbscissa > data.get(currentRow)[0]) {
+						lowerAbscissa = data.get(currentRow)[0];
+					}
 
-				/* if new max, edit the max and the JTable */
-				if (data.get(currentRow)[i + 1] > max.get(i)) {
-					max.set(i, significantDigit(data.get(currentRow)[i + 1], 3));
-					axisChange = true;
-					tableChange = true;
+					/* if new max, edit the max and the JTable */
+					if (data.get(currentRow)[i + 1] > max.get(i)) {
+						max.set(i, significantDigit(data.get(currentRow)[i + 1], 3));
+						axisChange = true;
+						tableChange = true;
+					}
+					/* if new min, edit the min and the JTable */
+					if (data.get(currentRow)[i + 1] < min.get(i)) {
+						min.set(i, significantDigit(data.get(currentRow)[i + 1], 3));
+						axisChange = true;
+						tableChange = true;
+					}
+					/* if new max or min, edit the axis range */
+					if (axisChange) {
+						axis.get(i).setRange(min.get(i) - Math.abs(min.get(i) / 100),
+								max.get(i) + Math.abs(min.get(i) / 100));
+					}
 				}
-				/* if new min, edit the min and the JTable */
-				if (data.get(currentRow)[i + 1] < min.get(i)) {
-					min.set(i, significantDigit(data.get(currentRow)[i + 1], 3));
-					axisChange = true;
-					tableChange = true;
-				}
-				/* if new max or min, edit the axis range */
-				if (axisChange) {
-					axis.get(i).setRange(min.get(i) - Math.abs(min.get(i) / 100),
-							max.get(i) + Math.abs(min.get(i) / 100));
-				}
+				currentRow++;
+
 			}
-			currentRow++;
 
-		}
-
-		/* if new max or min, edit the JTable */
-		if (tableChange) {
-			updateTable(data);
-		}
-
+			/* if new max or min, edit the JTable */
+			if (tableChange) {
+				updateTable(data);
+			}
+		});
 	}
 
 	/**
@@ -595,16 +610,11 @@ public class DisplayCurve extends JPanel {
 	 * @param data: current data of our chart
 	 */
 	public void updateTable(List<Double[]> datas) {
-		/* be sure that the table is update by only one thread */
-		while (updatingTable) {
-			try {
-				Thread.sleep(500);
-			} catch (InterruptedException e1) {
-				Main.logger.severe(e1.toString());
-			}
-
-		}
-		updatingTable = true;
+		/*
+		 * called either from the EDT directly (Calculate button) or from within
+		 * addData's own invokeLater (see above) so this always runs on the EDT,
+		 * making the previous busy-wait spin lock unnecessary.
+		 */
 		data = datas;
 		/* if the user did'nt entered a correct value, don't edit the JTable */
 		if (getValue() == Double.POSITIVE_INFINITY || getLowerBound() == Double.POSITIVE_INFINITY
@@ -613,18 +623,14 @@ public class DisplayCurve extends JPanel {
 		}
 		/* update heading of our JTable */
 		List<String> currentHeading = updateHeading();
-		/* remove the scrollpane */
-		tablePanel.remove(scrollPane);
-		/* create a new JTable with the correct values */
-		table = new JTable(new TableData(currentHeading, nbColumn, column, min, max, calculateValue(data, getValue()),
-				calculateAverage(data, getLowerBound(), getUpperBound())));
-		/* add the new JTable */
-		scrollPane = new JScrollPane(table);
+		/*
+		 * update the existing table model in place instead of tearing down and
+		 * rebuilding the JTable/TableData/JScrollPane on every refresh
+		 */
+		((TableData) table.getModel()).updateData(currentHeading, min, max, calculateValue(data, getValue()),
+				calculateAverage(data, getLowerBound(), getUpperBound()));
 		table.setPreferredScrollableViewportSize(
 				new Dimension(table.getPreferredSize().width, table.getRowHeight() * table.getRowCount()));
-		tablePanel.add(scrollPane, BorderLayout.CENTER);
-		principalPanel.revalidate();
-		updatingTable = false;
 	}
 
 	/**

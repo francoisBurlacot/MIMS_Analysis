@@ -23,7 +23,7 @@ public class TableData extends AbstractTableModel {
 	private static final long serialVersionUID = 1L;
 	private final List<TableRow> table = new ArrayList<TableRow>();
 	private final int nbColumn;
-	private final List<String> heading;
+	private List<String> heading;
 
 	/**
 	 * Constructor of TableData
@@ -86,5 +86,24 @@ public class TableData extends AbstractTableModel {
 		default:
 			return null;
 		}
+	}
+
+	/**
+	 * Update the heading and every row of this model in place, instead of
+	 * discarding it and building a brand new JTable/TableData each time new
+	 * values are available (min/max/value/average all change together, at the
+	 * same row count, so the existing TableRow objects can just be mutated).
+	 */
+	public void updateData(List<String> heading, List<Double> min, List<Double> max, List<Double> value,
+			List<Double> average) {
+		this.heading = heading;
+		for (int i = 0; i < table.size(); i++) {
+			TableRow row = table.get(i);
+			row.setMin(min.get(i));
+			row.setMax(max.get(i));
+			row.setValue(value.get(i));
+			row.setAverage(average.get(i));
+		}
+		fireTableStructureChanged();
 	}
 }
