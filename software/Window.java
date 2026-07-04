@@ -54,13 +54,11 @@ public class Window extends JFrame {
 	 * light/dark theme instead of staying a hardcoded color)
 	 */
 	private static Color cardBackground() {
-		Color color = UIManager.getColor("TextField.background");
-		return color != null ? color : new Color(0xFA, 0xFA, 0xFB);
+		return UIManager.getColor("TextField.background");
 	}
 
 	private static Color cardBorderColor() {
-		Color color = UIManager.getColor("Component.borderColor");
-		return color != null ? color : new Color(0xDD, 0xE0, 0xE4);
+		return UIManager.getColor("Component.borderColor");
 	}
 
 	/**
@@ -328,21 +326,9 @@ public class Window extends JFrame {
 
 		/* restore persisted preferences (normalization factor, pKa, display options, theme) */
 		settings = Settings.load();
-		try {
-			normalizationFactorValue = Double.parseDouble(settings.getProperty("normalizationFactor", "1"));
-		} catch (NumberFormatException e) {
-			normalizationFactorValue = 1;
-		}
-		try {
-			pKa1Value = Double.parseDouble(settings.getProperty("pKa1", "6.4"));
-		} catch (NumberFormatException e) {
-			pKa1Value = 6.4;
-		}
-		try {
-			pKa2Value = Double.parseDouble(settings.getProperty("pKa2", "10.3"));
-		} catch (NumberFormatException e) {
-			pKa2Value = 10.3;
-		}
+		normalizationFactorValue = Double.parseDouble(settings.getProperty("normalizationFactor", "1"));
+		pKa1Value = Double.parseDouble(settings.getProperty("pKa1", "6.4"));
+		pKa2Value = Double.parseDouble(settings.getProperty("pKa2", "10.3"));
 		h2oT = Boolean.parseBoolean(settings.getProperty("displayH2O", "true"));
 		ciT = Boolean.parseBoolean(settings.getProperty("displayCi", "true"));
 
@@ -697,12 +683,11 @@ public class Window extends JFrame {
 		bottom.add(new JLabel("Normalization Factor: " + normalizationFactorValue));
 
 		/*
-		 * set icon of our window: use the copy bundled inside the jar (on the
-		 * classpath) so the software doesn't depend on a logo.png file sitting next
-		 * to it; fall back to that file if run from loose class files
+		 * set icon of our window from the copy bundled on the classpath (see
+		 * src/main/resources/logo.png), so the software doesn't depend on a
+		 * logo.png file sitting next to it
 		 */
-		java.net.URL logoResource = Window.class.getResource("/logo.png");
-		img = logoResource != null ? new ImageIcon(logoResource) : new ImageIcon("logo.png");
+		img = new ImageIcon(Window.class.getResource("/logo.png"));
 		setIconImage(img.getImage());
 
 		/* add principal panel and bottom panel to our window */

@@ -1,4 +1,6 @@
 # MIMS Analysis
+![CI](https://github.com/francoisBurlacot/MIMS_Analysis/actions/workflows/ci.yml/badge.svg)
+
 The purpose of this software is to treat and analyze data of a Membrane Inlet Mass Spectrometer (MIMS), in real time.
 
 
@@ -14,12 +16,18 @@ mvn package
 ```
 This downloads the required external libraries (commons-collections4-4.4, commons-compress-1.18, jcommon-1.0.23, jfreechart-1.0.19, poi-4.1.0, xmlbeans-3.1.0, flatlaf) and produces a runnable `target/MIMS_Analysis.jar`. `mvn test` runs the automated test suite (JUnit 5) covering the Ci calculation and the curve calculation helpers.
 
-### Building a native installer
-Once `mvn package` has produced `target/MIMS_Analysis.jar`, you can wrap it into a native installer with `jpackage` (bundled with JDK 14+), so end users don't need Java installed separately. Run this **on the target OS** (jpackage doesn't cross-compile: run it on Windows to get an `.exe`/`.msi`, on macOS for a `.dmg`, on Linux for a `.deb`/`.rpm`):
+### Building a native .exe (Windows) / app / installer
+Once `mvn package` has produced `target/MIMS_Analysis.jar`, you can wrap it into a native app with `jpackage` (bundled with JDK 14+), so end users don't need Java installed separately. **Run this on the target OS** (jpackage doesn't cross-compile: run it on Windows to get a Windows app, on macOS for a `.dmg`, on Linux for a `.deb`/`.rpm`).
+
+**Simplest option — a self-contained `.exe` launcher, no extra tools needed:**
 ```
-jpackage --input target --name "MIMS Analysis" --main-jar MIMS_Analysis.jar --main-class software.Main --app-version 1.0.3
+jpackage --input target --name "MIMS Analysis" --main-jar MIMS_Analysis.jar --main-class software.Main --app-version 1.0.3 --type app-image
 ```
-To use `logo.png` as the installer/app icon, first convert it to the format required on that OS (`.ico` on Windows, `.icns` on macOS, `.png` is fine on Linux) and add `--icon <file>` to the command above.
+This creates a `MIMS Analysis` folder containing `MIMS Analysis.exe` (with Java bundled inside) and everything needed to run it. Copy/zip the whole folder to share it; there's nothing to install.
+
+**Full installer (Start Menu shortcut, uninstall entry):** drop `--type app-image` from the command above (or use `--type exe` / `--type msi` on Windows). This additionally requires installing the free [WiX Toolset](https://wixtoolset.org/) on the machine building the installer.
+
+To use `logo.png` as the app icon, first convert it to the format required on that OS (`.ico` on Windows, `.icns` on macOS, `.png` is fine on Linux) and add `--icon <file>` to the command above.
 
 
 
