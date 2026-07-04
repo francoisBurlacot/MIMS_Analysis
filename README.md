@@ -5,9 +5,21 @@ The purpose of this software is to treat and analyze data of a Membrane Inlet Ma
 ## Getting Started
 To run the software (MIMS_Analysis.jar file), you need Java version 1.8.0_201 (or higher). See (https://www.java.com/fr/download/).
 
-If your system doesn't support java 1.8.0, you can get the code in the software folder and compile it with your own java version (and create and executable with eclipse for example). If you want to do so, here is the external libraries used : common-collection-4.4.4, common-compress-1.18, jcommon-1.0.23, jfreechart-1.0.19, poi-4.1.0, xmlbeans-3.1.0 .
-
 To launch the software you just have to double click on the MIMS_Analysis.jar element (or compile the code).
+
+### Building from source
+The project now builds with Maven. From the repository root:
+```
+mvn package
+```
+This downloads the required external libraries (commons-collections4-4.4, commons-compress-1.18, jcommon-1.0.23, jfreechart-1.0.19, poi-4.1.0, xmlbeans-3.1.0, flatlaf) and produces a runnable `target/MIMS_Analysis.jar`. `mvn test` runs the automated test suite (JUnit 5) covering the Ci calculation and the curve calculation helpers.
+
+### Building a native installer
+Once `mvn package` has produced `target/MIMS_Analysis.jar`, you can wrap it into a native installer with `jpackage` (bundled with JDK 14+), so end users don't need Java installed separately. Run this **on the target OS** (jpackage doesn't cross-compile: run it on Windows to get an `.exe`/`.msi`, on macOS for a `.dmg`, on Linux for a `.deb`/`.rpm`):
+```
+jpackage --input target --name "MIMS Analysis" --main-jar MIMS_Analysis.jar --main-class software.Main --app-version 1.0.3
+```
+To use `logo.png` as the installer/app icon, first convert it to the format required on that OS (`.ico` on Windows, `.icns` on macOS, `.png` is fine on Linux) and add `--icon <file>` to the command above.
 
 
 
@@ -86,11 +98,29 @@ The normalization factor button is set to modify the value of the normalization 
 Every data that uses gas exchange rates (like gas exchange rates or cumulated gas exchanges) are divided by this factor.  
 Once you changed the normalization factor values, every chart panel will be closed and the dataset updated. You will have to reopen each wanted chart panel.
 
+The pKa Constants (Ci) button lets you edit the pKa1 (CO2/HCO3-, default 6.4) and pKa2 (HCO3-/CO3--, default 10.3) constants used to compute the dissolved inorganic carbon (Ci) from the CO2 concentration and pH.  
+As with the normalization factor, changing these values closes every chart panel and updates the dataset; you will have to reopen each wanted chart panel.
+
 
 
 ### Display Menu
 In the display menu, you can choose to display H2O (18) or not and to calculate Ci or not.  
 Once you changed one of the parameters, every chart panel will be closed and the dataset updated. You will have to reopen each wanted chart panel.  
+
+
+
+### View Menu
+From the view menu you can switch between the Light and Dark theme. Your choice is remembered for the next time you launch the software.
+
+
+
+### Toolbar
+Below the menu bar, a toolbar gives quick access to the most common actions (Open Factor, Open Data, Play, Pause) without going through the menus.
+
+
+
+### Remembered settings
+The normalization factor, pKa constants, and H2O/Ci display options are saved to a `mims_analysis.properties` file next to the jar, and restored automatically the next time you launch the software.
 
 
 
@@ -126,7 +156,7 @@ Feel free to modify and improve this version as long as it's in accord with the 
 
 
 ## Versioning
-1.0.2
+1.0.3
 
 
 
